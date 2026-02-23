@@ -1,46 +1,122 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title>Game Admin</title>
+
 <style>
-body { font-family:Arial; background:#111; color:white; text-align:center; }
-input, textarea { width:90%; padding:10px; margin:5px; }
-button { padding:10px; width:90%; }
+body{
+  font-family:Arial;
+  background:#111;
+  color:white;
+  padding:15px;
+}
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:none;
+}
+button{
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+}
+.add{ background:cyan; }
+.delete{ background:red; color:white; }
+
+.card{
+  background:#222;
+  padding:10px;
+  margin:10px 0;
+  border-radius:10px;
+}
+img{
+  width:100%;
+  border-radius:8px;
+}
 </style>
 </head>
+
 <body>
 
-<h2>Game Admin</h2>
+<h2>Game Admin Panel</h2>
 
-<input id="title" placeholder="Game Title"><br>
-<input id="image" placeholder="Image URL"><br>
-<input id="link" placeholder="Game Link"><br>
-<textarea id="desc" placeholder="Description"></textarea><br>
-<button onclick="addGame()">Add Game</button>
+<input id="title" placeholder="Game Title">
+<input id="link" placeholder="Game Link">
+<textarea id="desc" placeholder="Description"></textarea>
+<input type="file" id="image">
+<button class="add" onclick="addGame()">Add Game</button>
+
+<hr>
+
+<h3>Existing Games</h3>
+<div id="gameList"></div>
 
 <script>
-const API = "https://showcase-server-3axe.onrender.com";
+const API = "https://YOUR_RENDER_URL.onrender.com";
 const TOKEN = "zeta_secret_token";
 
+function loadGames(){
+  fetch(API+"/games")
+  .then(res=>res.json())
+  .then(data=>{
+    const container = document.getElementById("gameList");
+    container.innerHTML = "";
+
+    data.forEach(game=>{
+      container.innerHTML += `
+        <div class="card">
+          <img src="${game.image}">
+          <h4>${game.title}</h4>
+          <button class="delete" onclick="deleteGame(${game.id})">Delete</button>
+        </div>
+      `;
+    });
+  });
+}
+
 function addGame(){
+  const formData = new FormData();
+  formData.append("title", title.value);
+  formData.append("description", desc.value);
+  formData.append("link", link.value);
+  formData.append("image", image.files[0]);
+
   fetch(API+"/add",{
+    method:"POST",
+    headers:{ "Authorization":TOKEN },
+    body:formData
+  })
+  .then(res=>res.json())
+  .then(()=>{
+    alert("Game Added");
+    loadGames();
+  });
+}
+
+function deleteGame(id){
+  fetch(API+"/delete",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
       "Authorization":TOKEN
     },
-    body:JSON.stringify({
-      id:Date.now(),
-      title:title.value,
-      image:image.value,
-      link:link.value,
-      description:desc.value
-    })
+    body:JSON.stringify({ id })
   })
   .then(res=>res.json())
-  .then(()=>alert("Game Added"));
+  .then(()=>{
+    alert("Deleted");
+    loadGames();
+  });
 }
+
+loadGames();
 </script>
 
 </body>
