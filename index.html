@@ -1,123 +1,768 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Admin</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ARCADE · Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 <style>
-body{
-  font-family:Arial;
-  background:#111;
-  color:white;
-  padding:15px;
-}
-input, textarea{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border-radius:8px;
-  border:none;
-}
-button{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-}
-.add{ background:cyan; }
-.delete{ background:red; color:white; }
+  :root {
+    --bg:        #050508;
+    --surface:   #0c0c14;
+    --surface2:  #12121e;
+    --border:    #1e1e32;
+    --border2:   #2a2a42;
+    --cyan:      #00ffe1;
+    --magenta:   #ff2d78;
+    --yellow:    #ffe53d;
+    --green:     #39ff88;
+    --red:       #ff3d5a;
+    --text:      #e2e2f0;
+    --muted:     #5a5a7a;
+    --font-head: 'Orbitron', monospace;
+    --font-body: 'Space Mono', monospace;
+    --radius:    4px;
+    --t: 0.2s ease;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-.card{
-  background:#222;
-  padding:10px;
-  margin:10px 0;
-  border-radius:10px;
-}
-img{
-  width:100%;
-  border-radius:8px;
-}
+  /* Noise */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  header {
+    padding: 32px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    font-family: var(--font-head); font-size: 18px; font-weight: 900;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .admin-tag {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    border: 1px solid var(--magenta); color: var(--magenta);
+    padding: 3px 8px; border-radius: var(--radius);
+  }
+  .back-link {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); padding: 8px 14px; border-radius: var(--radius);
+    transition: border-color var(--t), color var(--t);
+  }
+  .back-link:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* ── Login overlay ───────────────────────────────────────────────────── */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(5,5,8,0.97);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); padding: 40px; width: 100%; max-width: 380px;
+    text-align: center;
+  }
+  .login-title {
+    font-family: var(--font-head); font-size: 14px;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--cyan); margin-bottom: 8px;
+  }
+  .login-sub { color: var(--muted); font-size: 11px; margin-bottom: 28px; }
+  .login-box input {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text);
+    font-family: var(--font-body); font-size: 14px;
+    margin-bottom: 16px; outline: none;
+    transition: border-color var(--t);
+    letter-spacing: 0.1em;
+  }
+  .login-box input:focus { border-color: var(--cyan); }
+  .login-err { color: var(--red); font-size: 11px; margin-bottom: 12px; min-height: 16px; }
+
+  /* ── Panels layout ───────────────────────────────────────────────────── */
+  .layout { display: grid; grid-template-columns: 1fr; gap: 32px; }
+  @media (min-width: 900px) { .layout { grid-template-columns: 380px 1fr; } }
+
+  /* ── Panel ───────────────────────────────────────────────────────────── */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .panel-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-family: var(--font-head); font-size: 11px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--cyan);
+  }
+  .panel-body { padding: 24px; }
+
+  /* ── Form ────────────────────────────────────────────────────────────── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .field input[type="text"],
+  .field input[type="url"],
+  .field textarea {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text);
+    font-family: var(--font-body); font-size: 13px;
+    outline: none; resize: vertical;
+    transition: border-color var(--t), box-shadow var(--t);
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(0,255,225,0.08);
+  }
+  .field textarea { min-height: 80px; }
+
+  /* Image drop zone */
+  .img-zone {
+    border: 1px dashed var(--border2); border-radius: var(--radius);
+    background: var(--surface2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 24px; cursor: pointer;
+    transition: border-color var(--t);
+    position: relative; min-height: 120px;
+    overflow: hidden;
+  }
+  .img-zone:hover { border-color: var(--cyan); }
+  .img-zone.drag  { border-color: var(--yellow); background: rgba(255,229,61,0.04); }
+  .img-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0;
+  }
+  .img-icon { font-size: 28px; color: var(--muted); pointer-events: none; }
+  .img-hint { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; pointer-events: none; }
+  .img-preview {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover;
+    border-radius: var(--radius); display: none;
+  }
+  .img-preview.on { display: block; }
+  .img-remove {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--red); color: white; border: none; border-radius: var(--radius);
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+    display: none;
+  }
+  .img-remove.on { display: block; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 22px; border-radius: var(--radius);
+    font-family: var(--font-head); font-size: 11px;
+    font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+    cursor: pointer; border: 1px solid; transition: all var(--t);
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--cyan); border-color: var(--cyan); color: var(--bg);
+    box-shadow: 0 0 16px rgba(0,255,225,0.25);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 28px rgba(0,255,225,0.5);
+    filter: brightness(1.1);
+  }
+  .btn-ghost { background: transparent; border-color: var(--border2); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn-danger { background: transparent; border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: white; box-shadow: 0 0 16px rgba(255,61,90,0.4); }
+  .btn-warn { background: transparent; border-color: var(--yellow); color: var(--yellow); }
+  .btn-warn:hover { background: var(--yellow); color: var(--bg); }
+  .btn:disabled { opacity: 0.4; pointer-events: none; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .form-err { color: var(--red); font-size: 11px; margin-top: 12px; min-height: 16px; }
+
+  /* ── Games list ──────────────────────────────────────────────────────── */
+  .games-list { display: flex; flex-direction: column; gap: 12px; }
+  .game-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color var(--t);
+    animation: rowIn 0.3s ease both;
+  }
+  .game-row:hover { border-color: var(--border2); }
+  .game-row-thumb {
+    width: 64px; height: 40px; object-fit: cover;
+    border-radius: 2px; flex-shrink: 0;
+    background: var(--surface); display: flex; align-items: center; justify-content: center;
+    color: var(--border2); font-size: 18px;
+    overflow: hidden;
+  }
+  .game-row-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .game-row-info { flex: 1; min-width: 0; }
+  .game-row-title {
+    font-family: var(--font-head); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .game-row-link {
+    font-size: 11px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block;
+  }
+  .game-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .row-btn {
+    padding: 5px 12px; font-size: 10px; letter-spacing: 0.1em;
+    font-family: var(--font-head); font-weight: 700; text-transform: uppercase;
+    border-radius: var(--radius); cursor: pointer; border: 1px solid;
+    transition: all var(--t);
+  }
+  .row-edit  { border-color: var(--cyan); color: var(--cyan); background: transparent; }
+  .row-edit:hover  { background: var(--cyan); color: var(--bg); }
+  .row-delete { border-color: var(--red); color: var(--red); background: transparent; }
+  .row-delete:hover { background: var(--red); color: white; }
+
+  .empty-list {
+    text-align: center; padding: 48px 20px; color: var(--muted);
+  }
+  .empty-list-icon { font-size: 36px; opacity: 0.2; display: block; margin-bottom: 12px; }
+
+  /* ── Modal ────────────────────────────────────────────────────────────── */
+  #modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(5,5,8,0.85);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #modal.open { display: flex; }
+  .modal-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius); width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto;
+    animation: modalIn 0.25s ease;
+  }
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+  }
+  .modal-title { font-family: var(--font-head); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--yellow); }
+  .modal-close {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 20px; line-height: 1; transition: color var(--t);
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 24px; }
+
+  /* ── Toast ───────────────────────────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 32px; right: 32px; z-index: 999;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 12px; letter-spacing: 0.1em;
+    transform: translateY(20px); opacity: 0;
+    transition: all 0.3s ease; pointer-events: none;
+  }
+  #toast.success { background: var(--surface2); border: 1px solid var(--green);  color: var(--green);  box-shadow: 0 0 20px rgba(57,255,136,0.3); }
+  #toast.error   { background: var(--surface2); border: 1px solid var(--red);    color: var(--red);    box-shadow: 0 0 20px rgba(255,61,90,0.3); }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── Delete confirm ──────────────────────────────────────────────────── */
+  #confirmModal {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(5,5,8,0.9);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #confirmModal.open { display: flex; }
+  .confirm-box {
+    background: var(--surface); border: 1px solid var(--red);
+    border-radius: var(--radius); padding: 32px; max-width: 360px; width: 100%;
+    text-align: center; animation: modalIn 0.2s ease;
+  }
+  .confirm-title { font-family: var(--font-head); font-size: 13px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin-bottom: 12px; }
+  .confirm-sub { color: var(--muted); font-size: 12px; margin-bottom: 24px; line-height: 1.6; }
+
+  /* ── Loader ──────────────────────────────────────────────────────────── */
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block; vertical-align: middle;
+  }
+
+  /* ── Animations ──────────────────────────────────────────────────────── */
+  @keyframes spin     { to { transform: rotate(360deg) } }
+  @keyframes rowIn    { from { opacity:0; transform:translateX(-8px) } to { opacity:1; transform:translateX(0) } }
+  @keyframes modalIn  { from { opacity:0; transform:scale(0.95) }      to { opacity:1; transform:scale(1) } }
 </style>
 </head>
-
 <body>
 
-<h2>Game Admin Panel</h2>
+<!-- Login overlay -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-title">Admin Access</div>
+    <div class="login-sub">Enter your admin token to continue</div>
+    <input id="tokenInput" type="password" placeholder="••••••••••••••••" autocomplete="off" />
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn btn-primary" style="width:100%" id="loginBtn">Authenticate</button>
+  </div>
+</div>
 
-<input id="title" placeholder="Game Title">
-<input id="link" placeholder="Game Link">
-<textarea id="desc" placeholder="Description"></textarea>
-<input type="file" id="image">
-<button class="add" onclick="addGame()">Add Game</button>
+<div class="wrap">
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo">ARCADE</div>
+      <div class="admin-tag">Admin</div>
+    </div>
+    <a href="index.html" class="back-link">← Showcase</a>
+  </header>
 
-<hr>
+  <div class="layout">
+    <!-- Add game panel -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" id="formTitle">Add New Game</div>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Game Title *</label>
+            <input type="text" id="fTitle" placeholder="e.g. Space Invaders Clone" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Description *</label>
+            <textarea id="fDesc" placeholder="A short description of the game…"></textarea>
+          </div>
+          <div class="field">
+            <label>Play Link *</label>
+            <input type="url" id="fLink" placeholder="https://yoursite.com/game" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Cover Image (max 2MB)</label>
+            <div class="img-zone" id="imgZone">
+              <input type="file" id="fImage" accept="image/*" />
+              <img class="img-preview" id="imgPreview" alt="Preview" />
+              <button class="img-remove" id="imgRemove" type="button">✕ Remove</button>
+              <span class="img-icon" id="imgIcon">◈</span>
+              <span class="img-hint" id="imgHint">Click or drag image here</span>
+            </div>
+          </div>
+          <div class="form-err" id="formErr"></div>
+          <div class="btn-row" style="margin-top: 8px;">
+            <button class="btn btn-primary" id="submitBtn">+ Add Game</button>
+            <button class="btn btn-ghost" id="resetBtn" style="display:none">Cancel Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<h3>Existing Games</h3>
-<div id="gameList"></div>
+    <!-- Games list panel -->
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Game Library</div>
+          <span id="listCount" style="font-size:11px;color:var(--muted);">0 games</span>
+        </div>
+        <div class="panel-body">
+          <div id="gamesList"><div style="text-align:center;padding:24px"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Edit Game</div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mId" />
+      <div class="field">
+        <label>Game Title</label>
+        <input type="text" id="mTitle" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="mDesc"></textarea>
+      </div>
+      <div class="field">
+        <label>Play Link</label>
+        <input type="url" id="mLink" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Replace Cover Image</label>
+        <div class="img-zone" id="mImgZone">
+          <input type="file" id="mImage" accept="image/*" />
+          <img class="img-preview" id="mImgPreview" alt="Preview" />
+          <button class="img-remove" id="mImgRemove" type="button">✕ Remove</button>
+          <span class="img-icon" id="mImgIcon">◈</span>
+          <span class="img-hint" id="mImgHint">Click to replace image</span>
+        </div>
+      </div>
+      <div class="form-err" id="modalErr"></div>
+      <div class="btn-row" style="margin-top: 12px;">
+        <button class="btn btn-warn" id="modalSave">Save Changes</button>
+        <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div id="confirmModal">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete Game?</div>
+    <div class="confirm-sub" id="confirmMsg">This action cannot be undone.</div>
+    <div class="btn-row" style="justify-content: center;">
+      <button class="btn btn-danger" id="confirmYes">Delete</button>
+      <button class="btn btn-ghost" id="confirmNo">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
 
 <script>
-const API = "https://showcase-server-3axe.onrender.com";
-const TOKEN = "zeta_secret_token";
+// ── Config ────────────────────────────────────────────────────────────────
+const API = (window.ARCADE_API || 'https://showcase-server-3axe.onrender.com');
 
-function loadGames(){
-  fetch(API+"/games")
-  .then(res=>res.json())
-  .then(data=>{
-    const container = document.getElementById("gameList");
-    container.innerHTML = "";
+// ── State ─────────────────────────────────────────────────────────────────
+let token    = sessionStorage.getItem('arcade_token') || '';
+let games    = [];
+let editFile = null; // FileObject for modal
+let addFile  = null;
+let deleteTarget = null;
 
-    data.forEach(game=>{
-      container.innerHTML += `
-        <div class="card">
-          <img src="${game.image}">
-          <h4>${game.title}</h4>
-          <button class="delete" onclick="deleteGame(${game.id})">Delete</button>
-        </div>
-      `;
+// ── DOM ───────────────────────────────────────────────────────────────────
+const loginOverlay  = document.getElementById('loginOverlay');
+const tokenInput    = document.getElementById('tokenInput');
+const loginBtn      = document.getElementById('loginBtn');
+const loginErr      = document.getElementById('loginErr');
+
+const fTitle        = document.getElementById('fTitle');
+const fDesc         = document.getElementById('fDesc');
+const fLink         = document.getElementById('fLink');
+const fImage        = document.getElementById('fImage');
+const imgZone       = document.getElementById('imgZone');
+const imgPreview    = document.getElementById('imgPreview');
+const imgRemove     = document.getElementById('imgRemove');
+const imgIcon       = document.getElementById('imgIcon');
+const imgHint       = document.getElementById('imgHint');
+const submitBtn     = document.getElementById('submitBtn');
+const resetBtn      = document.getElementById('resetBtn');
+const formErr       = document.getElementById('formErr');
+const formTitle     = document.getElementById('formTitle');
+const gamesList     = document.getElementById('gamesList');
+const listCount     = document.getElementById('listCount');
+
+const modal         = document.getElementById('modal');
+const modalClose    = document.getElementById('modalClose');
+const modalCancel   = document.getElementById('modalCancel');
+const modalSave     = document.getElementById('modalSave');
+const modalErr      = document.getElementById('modalErr');
+const mId           = document.getElementById('mId');
+const mTitle        = document.getElementById('mTitle');
+const mDesc         = document.getElementById('mDesc');
+const mLink         = document.getElementById('mLink');
+const mImage        = document.getElementById('mImage');
+const mImgZone      = document.getElementById('mImgZone');
+const mImgPreview   = document.getElementById('mImgPreview');
+const mImgRemove    = document.getElementById('mImgRemove');
+const mImgIcon      = document.getElementById('mImgIcon');
+const mImgHint      = document.getElementById('mImgHint');
+
+const confirmModal  = document.getElementById('confirmModal');
+const confirmMsg    = document.getElementById('confirmMsg');
+const confirmYes    = document.getElementById('confirmYes');
+const confirmNo     = document.getElementById('confirmNo');
+
+const toast         = document.getElementById('toast');
+
+// ── Login ─────────────────────────────────────────────────────────────────
+if (token) tryAutoLogin();
+
+loginBtn.addEventListener('click', () => {
+  token = tokenInput.value.trim();
+  if (!token) { loginErr.textContent = 'Please enter a token.'; return; }
+  loginErr.textContent = '';
+  sessionStorage.setItem('arcade_token', token);
+  loginOverlay.style.display = 'none';
+  loadGames();
+});
+tokenInput.addEventListener('keydown', e => e.key === 'Enter' && loginBtn.click());
+
+async function tryAutoLogin() {
+  try {
+    const r = await fetch(`${API}/health`, { headers: authHeaders() });
+    if (r.ok) {
+      loginOverlay.style.display = 'none';
+      loadGames();
+    } else {
+      token = '';
+      sessionStorage.removeItem('arcade_token');
+    }
+  } catch { /* server offline – show login anyway */ loginOverlay.style.display = 'none'; loadGames(); }
+}
+
+function authHeaders() {
+  return { Authorization: `Bearer ${token}` };
+}
+
+// ── Load games ─────────────────────────────────────────────────────────────
+async function loadGames() {
+  try {
+    const r = await fetch(`${API}/games`);
+    games = await r.json();
+    renderList();
+  } catch {
+    gamesList.innerHTML = `<div class="empty-list"><span class="empty-list-icon">⚠</span>Cannot reach server.</div>`;
+  }
+}
+
+// ── Render list ────────────────────────────────────────────────────────────
+function renderList() {
+  listCount.textContent = `${games.length} game${games.length !== 1 ? 's' : ''}`;
+  if (!games.length) {
+    gamesList.innerHTML = `<div class="empty-list"><span class="empty-list-icon">◌</span>No games yet.</div>`;
+    return;
+  }
+  gamesList.innerHTML = `<div class="games-list">${games.map(buildRow).join('')}</div>`;
+  gamesList.querySelectorAll('.row-edit').forEach(btn =>
+    btn.addEventListener('click', () => openEdit(btn.dataset.id))
+  );
+  gamesList.querySelectorAll('.row-delete').forEach(btn =>
+    btn.addEventListener('click', () => askDelete(btn.dataset.id))
+  );
+}
+
+function buildRow(g) {
+  const thumb = g.image
+    ? `<div class="game-row-thumb"><img src="${escHtml(g.image)}" alt="" /></div>`
+    : `<div class="game-row-thumb">◈</div>`;
+  return `<div class="game-row">
+    ${thumb}
+    <div class="game-row-info">
+      <div class="game-row-title">${escHtml(g.title)}</div>
+      <a class="game-row-link" href="${escHtml(g.link)}" target="_blank" rel="noopener">${escHtml(g.link)}</a>
+    </div>
+    <div class="game-row-actions">
+      <button class="row-btn row-edit" data-id="${escHtml(g.id)}">Edit</button>
+      <button class="row-btn row-delete" data-id="${escHtml(g.id)}">Del</button>
+    </div>
+  </div>`;
+}
+
+// ── Image handling (add form) ──────────────────────────────────────────────
+fImage.addEventListener('change', () => setImagePreview(fImage.files[0], imgPreview, imgIcon, imgHint, imgRemove, f => addFile = f));
+imgRemove.addEventListener('click', e => { e.stopPropagation(); clearImage(fImage, imgPreview, imgIcon, imgHint, imgRemove); addFile = null; });
+setupDragDrop(imgZone, fImage);
+
+mImage.addEventListener('change', () => setImagePreview(mImage.files[0], mImgPreview, mImgIcon, mImgHint, mImgRemove, f => editFile = f));
+mImgRemove.addEventListener('click', e => { e.stopPropagation(); clearImage(mImage, mImgPreview, mImgIcon, mImgHint, mImgRemove); editFile = null; });
+setupDragDrop(mImgZone, mImage);
+
+function setImagePreview(file, previewEl, iconEl, hintEl, removeEl, setter) {
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Image must be under 2MB', 'error'); return; }
+  setter(file);
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewEl.src = e.target.result;
+    previewEl.classList.add('on');
+    iconEl.style.display = 'none';
+    hintEl.style.display = 'none';
+    removeEl.classList.add('on');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(inputEl, previewEl, iconEl, hintEl, removeEl) {
+  inputEl.value = '';
+  previewEl.src = ''; previewEl.classList.remove('on');
+  iconEl.style.display = ''; hintEl.style.display = '';
+  removeEl.classList.remove('on');
+}
+
+function setupDragDrop(zone, input) {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    }
+  });
+}
+
+// ── Add game ───────────────────────────────────────────────────────────────
+submitBtn.addEventListener('click', async () => {
+  formErr.textContent = '';
+  const title = fTitle.value.trim();
+  const desc  = fDesc.value.trim();
+  const link  = fLink.value.trim();
+  if (!title || !desc || !link) { formErr.textContent = 'Title, description, and link are required.'; return; }
+
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('description', desc);
+  fd.append('link', link);
+  if (addFile) fd.append('image', addFile);
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const r = await fetch(`${API}/add`, { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    if (!r.ok) { formErr.textContent = data.error || 'Error adding game.'; return; }
+    games.unshift(data);
+    renderList();
+    resetAddForm();
+    showToast(`"${data.title}" added!`, 'success');
+  } catch { formErr.textContent = 'Network error.'; }
+  finally { submitBtn.disabled = false; submitBtn.textContent = '+ Add Game'; }
+});
+
+resetBtn.addEventListener('click', resetAddForm);
+
+function resetAddForm() {
+  fTitle.value = ''; fDesc.value = ''; fLink.value = '';
+  clearImage(fImage, imgPreview, imgIcon, imgHint, imgRemove);
+  addFile = null; formErr.textContent = '';
+  submitBtn.textContent = '+ Add Game';
+  formTitle.textContent = 'Add New Game';
+  resetBtn.style.display = 'none';
+}
+
+// ── Edit modal ─────────────────────────────────────────────────────────────
+function openEdit(id) {
+  const g = games.find(x => x.id === id);
+  if (!g) return;
+  mId.value    = g.id;
+  mTitle.value = g.title;
+  mDesc.value  = g.description;
+  mLink.value  = g.link;
+  editFile     = null;
+  clearImage(mImage, mImgPreview, mImgIcon, mImgHint, mImgRemove);
+  if (g.image) {
+    mImgPreview.src = g.image;
+    mImgPreview.classList.add('on');
+    mImgIcon.style.display = 'none';
+    mImgHint.style.display = 'none';
+    mImgRemove.classList.add('on');
+  }
+  modalErr.textContent = '';
+  modal.classList.add('open');
+}
+
+[modalClose, modalCancel].forEach(el => el.addEventListener('click', () => modal.classList.remove('open')));
+modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+modalSave.addEventListener('click', async () => {
+  modalErr.textContent = '';
+  const id    = mId.value;
+  const title = mTitle.value.trim();
+  const desc  = mDesc.value.trim();
+  const link  = mLink.value.trim();
+  if (!title || !desc || !link) { modalErr.textContent = 'All fields are required.'; return; }
+
+  const fd = new FormData();
+  fd.append('id', id);
+  fd.append('title', title);
+  fd.append('description', desc);
+  fd.append('link', link);
+  if (editFile) fd.append('image', editFile);
+
+  modalSave.disabled = true;
+  modalSave.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const r = await fetch(`${API}/edit`, { method: 'POST', headers: authHeaders(), body: fd });
+    const data = await r.json();
+    if (!r.ok) { modalErr.textContent = data.error || 'Error saving.'; return; }
+    const idx = games.findIndex(g => g.id === data.id);
+    if (idx > -1) games[idx] = data;
+    renderList();
+    modal.classList.remove('open');
+    showToast(`"${data.title}" updated!`, 'success');
+  } catch { modalErr.textContent = 'Network error.'; }
+  finally { modalSave.disabled = false; modalSave.textContent = 'Save Changes'; }
+});
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+function askDelete(id) {
+  const g = games.find(x => x.id === id);
+  if (!g) return;
+  deleteTarget = id;
+  confirmMsg.textContent = `Delete "${g.title}"? This cannot be undone.`;
+  confirmModal.classList.add('open');
+}
+
+confirmNo.addEventListener('click',  () => { confirmModal.classList.remove('open'); deleteTarget = null; });
+confirmYes.addEventListener('click', async () => {
+  if (!deleteTarget) return;
+  confirmYes.disabled = true;
+  try {
+    const r = await fetch(`${API}/delete`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: deleteTarget }),
     });
-  });
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Error deleting.', 'error'); return; }
+    games = games.filter(g => g.id !== deleteTarget);
+    renderList();
+    confirmModal.classList.remove('open');
+    showToast('Game deleted.', 'success');
+  } catch { showToast('Network error.', 'error'); }
+  finally { confirmYes.disabled = false; deleteTarget = null; }
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = 'success') {
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.className = `${type} show`;
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
-function addGame(){
-  const formData = new FormData();
-  formData.append("title", title.value);
-  formData.append("description", desc.value);
-  formData.append("link", link.value);
-  formData.append("image", image.files[0]);
-
-  fetch(API+"/add",{
-    method:"POST",
-    headers:{ "Authorization":TOKEN },
-    body:formData
-  })
-  .then(res=>res.json())
-  .then(()=>{
-    alert("Game Added");
-    loadGames();
-  });
+// ── Utils ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
-function deleteGame(id){
-  fetch(API+"/delete",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":TOKEN
-    },
-    body:JSON.stringify({ id })
-  })
-  .then(res=>res.json())
-  .then(()=>{
-    alert("Deleted");
-    loadGames();
-  });
-}
-
-loadGames();
 </script>
-
 </body>
 </html>
