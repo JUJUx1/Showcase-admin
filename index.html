@@ -75,14 +75,15 @@
 
   /* ── Login overlay ───────────────────────────────────────────────────── */
   #loginOverlay {
-    position: fixed; inset: 0; z-index: 100;
+    position: fixed; inset: 0; z-index: 9999;
     background: rgba(5,5,8,0.97);
     display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
   }
   .login-box {
     background: var(--surface); border: 1px solid var(--border2);
     border-radius: var(--radius); padding: 40px; width: 100%; max-width: 380px;
-    text-align: center;
+    text-align: center; pointer-events: all; position: relative; z-index: 10000;
   }
   .login-title {
     font-family: var(--font-head); font-size: 14px;
@@ -90,16 +91,7 @@
     color: var(--cyan); margin-bottom: 8px;
   }
   .login-sub { color: var(--muted); font-size: 11px; margin-bottom: 28px; }
-  .login-box input {
-    width: 100%; padding: 12px 14px;
-    background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: var(--radius); color: var(--text);
-    font-family: var(--font-body); font-size: 16px; /* prevents iOS zoom */
-    margin-bottom: 16px; outline: none;
-    transition: border-color var(--t);
-    letter-spacing: 0.1em; -webkit-appearance: none;
-  }
-  .login-box input:focus { border-color: var(--cyan); }
+
   .login-err { color: var(--red); font-size: 11px; margin-bottom: 12px; min-height: 16px; }
 
   /* ── Panels layout ───────────────────────────────────────────────────── */
@@ -352,7 +344,15 @@
   <div class="login-box">
     <div class="login-title">Admin Access</div>
     <div class="login-sub">Enter your admin token to continue</div>
-    <input id="tokenInput" type="password" placeholder="••••••••••••••••" autocomplete="off" />
+    <div style="position:relative; margin-bottom:16px;">
+      <input id="tokenInput" type="password" placeholder="Enter your admin token" autocomplete="off"
+        style="width:100%; padding:12px 44px 12px 14px; background:var(--surface2); border:1px solid var(--border2);
+               border-radius:var(--radius); color:var(--text); font-family:var(--font-body);
+               font-size:16px; outline:none; letter-spacing:0.1em; -webkit-appearance:none; box-sizing:border-box;" />
+      <button id="toggleToken" type="button"
+        style="position:absolute; right:0; top:0; bottom:0; width:44px; background:none; border:none;
+               color:var(--muted); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;">👁</button>
+    </div>
     <div class="login-err" id="loginErr"></div>
     <button class="btn btn-primary" style="width:100%" id="loginBtn">Authenticate</button>
   </div>
@@ -537,26 +537,63 @@ const toast         = document.getElementById('toast');
 if (token) tryAutoLogin();
 
 loginBtn.addEventListener('click', () => {
-  token = tokenInput.value.trim();
-  if (!token) { loginErr.textContent = 'Please enter a token.'; return; }
-  loginErr.textContent = '';
-  sessionStorage.setItem('arcade_token', token);
-  loginOverlay.style.display = 'none';
-  loadGames();
+  const val = tokenInput.value.trim();
+  if (!val) { loginErr.textContent = 'Please enter a token.'; return; }
+  token = val;
+  verifyAndLogin();
 });
 tokenInput.addEventListener('keydown', e => e.key === 'Enter' && loginBtn.click());
+document.getElementById('toggleToken').addEventListener('click', () => {
+  const inp = tokenInput;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+});
+
+async function verifyAndLogin() {
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Connecting…';
+  loginErr.textContent = '';
+  try {
+    // Hit a protected endpoint — 404 means auth passed, 401 means wrong token
+    const r = await fetch(`${API}/delete`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: '__auth_check__' }),
+    });
+    if (r.status === 401) {
+      loginErr.textContent = '❌ Wrong token. Check ADMIN_TOKEN in your Render environment.';
+      token = '';
+      return;
+    }
+    sessionStorage.setItem('arcade_token', token);
+    loginOverlay.style.display = 'none';
+    loadGames();
+  } catch {
+    loginErr.textContent = '⚠ Cannot reach server. It may be waking up — wait 30s and try again.';
+    token = '';
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Authenticate';
+  }
+}
 
 async function tryAutoLogin() {
   try {
-    const r = await fetch(`${API}/health`, { headers: authHeaders() });
-    if (r.ok) {
-      loginOverlay.style.display = 'none';
-      loadGames();
-    } else {
+    const r = await fetch(`${API}/delete`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: '__auth_check__' }),
+    });
+    if (r.status === 401) {
       token = '';
       sessionStorage.removeItem('arcade_token');
+      return;
     }
-  } catch { /* server offline – show login anyway */ loginOverlay.style.display = 'none'; loadGames(); }
+    loginOverlay.style.display = 'none';
+    loadGames();
+  } catch {
+    token = '';
+    sessionStorage.removeItem('arcade_token');
+  }
 }
 
 function authHeaders() {
